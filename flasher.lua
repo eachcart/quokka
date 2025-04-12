@@ -1,5 +1,5 @@
-local component = component
-local computer = computer
+local component = require("component")
+local computer = require("computer")
 local internet = component.internet
 
 local function sleep(sec)
@@ -9,47 +9,23 @@ local function sleep(sec)
   end
 end
 
-local gpuAddress = next(component.list("gpu"))
-local screenAddress = next(component.list("screen"))
-
-if not gpuAddress or not screenAddress then
-  return
-end
-
-local gpu = component.proxy(gpuAddress)
-gpu.bind(screenAddress)
-gpu.setBackground(0xCC0000)
-gpu.setForeground(0xFFFFFF)
-local w, h = gpu.getResolution()
-
-local function centerText(y, text)
-  local x = math.floor(w / 2 - #text / 2)
-  gpu.fill(1, y, w, 1, " ")
-  gpu.set(x, y, text)
-end
-
-centerText(math.floor(h / 2), "Quokka EEPROM Flasher")
-
-local fsAddress = next(component.list("filesystem"))
-if not fsAddress then
-  centerText(h, "[ Error: No filesystem found ]")
-  sleep(3)
-  return
-end
-local fs = component.proxy(fsAddress)
-
 local function downloadFile(url, path)
   local handle, err = internet.request(url)
   if not handle then
-    centerText(h, "[ Error: " .. err .. " ]")
-    sleep(3)
+    print("[ Error: " .. err .. " ]")
     return false
   end
 
+  local fsAddress = next(component.list("filesystem"))
+  if not fsAddress then
+    print("[ Error: No filesystem found ]")
+    return false
+  end
+  local fs = component.proxy(fsAddress)
+
   local file, err = fs.open(path, "w")
   if not file then
-    centerText(h, "[ Error: " .. err .. " ]")
-    sleep(3)
+    print("[ Error: " .. err .. " ]")
     return false
   end
 
@@ -66,63 +42,63 @@ local function downloadFile(url, path)
   return true
 end
 
-local url = "https://raw.githubusercontent.com/eachcart/quokka/refs/heads/main/assets/eeprom.lua"
-local savePath = "/quokka/efi/eeprom.lua"
+local eepromFileUrl = "https://raw.githubusercontent.com/eachcart/quokka/refs/heads/main/assets/eeprom.lua"
+local flasherFileUrl = "https://raw.githubusercontent.com/eachcart/quokka/refs/heads/main/assets/flash.lua"
+local savePathEeprom = "/quokka/efi/eeprom.lua"
+local savePathFlasher = "/quokka/efi/flasher.lua"
 
-centerText(h, "[ Downloading eeprom.lua . . . ]")
-local success = downloadFile(url, savePath)
-
+print("[ Downloading eeprom.lua . . . ]")
+local success = downloadFile(eepromFileUrl, savePathEeprom)
 if not success then
-  centerText(h, "[ Error: Download failed ]")
-  sleep(3)
-  computer.shutdown(true)
-end
-
-local function tryOpenFile(path)
-  local handle, reason = fs.open(path, "r")
-  if not handle then
-    return nil, reason
-  end
-  return handle
-end
-
-centerText(h, "[ Flashing firmware . . . ]")
-local handle, err = tryOpenFile(savePath)
-
-if not handle then
-  centerText(h, "[ Error: " .. tostring(err) .. ", trying to reboot ]")
-  sleep(3)
-  computer.shutdown(true)
-end
-
-local data = ""
-while true do
-  local chunk = fs.read(handle, 256)
-  if not chunk then break end
-  data = data .. chunk
-  if #data > 4096 then
-    fs.close(handle)
-    centerText(h, "[ Error: EEPROM too big (>4KB) ]")
-    sleep(5)
-    return
-  end
-end
-fs.close(handle)
-
-local eepromAddress = next(component.list("eeprom"))
-if not eepromAddress then
-  centerText(h, "[ Error: No EEPROM found ]")
-  sleep(3)
+  print("[ Error: Download of eeprom.lua failed ]")
   return
 end
 
-local eeprom = component.proxy(eepromAddress)
-eeprom.set(data)
-eeprom.setLabel("Quokka Firmware")
+print("[ Downloading flasher.lua . . . ]")
+success = downloadFile(flasherFileUrl, savePathFlasher)
+if not success then
+  print("[ Error: Download of flasher.lua failed ]")
+  return
+end
 
-centerText(h, "[ Flashing Complete! ]")
-computer.beep(1500, 0.2)
-sleep(0.1)
-computer.beep(1800, 0.2)
-sleep(2)
-computer.shutdown(true)
+local function flashFile(filePath)
+  local fsAddress = next(component.list("filesystem"))
+  if not fsAddress then
+    print("[ Error: No filesystem found ]")
+    return
+  end
+  local fs = component.proxy(fsAddress)
+
+  local handle, err = fs.open(filePath, "r")
+  if not handle then
+    print("[ Error: Unable to open file " .. filePath .. " ]")
+    return
+  end
+
+  local data = ""
+  while true do
+    local chunk = fs.read(handle, 256)
+    if not chunk then break end
+    data = data .. chunk
+  end
+  fs.close(handle)
+
+  local eepromAddress = next(component.list("eeprom"))
+  if not eepromAddress then
+    print("[ Error: No EEPROM found ]")
+    return
+  end
+
+  local eeprom = component.proxy(eepromAddress)
+  eeprom.set(data)
+  eeprom.setLabel("Flasher Script")
+
+  print("[ Flashing Complete! Rebooting . . . ]")
+  computer.beep(1500, 0.2)
+  sleep(0.1)
+  computer.beep(1800, 0.2)
+  sleep(2)
+  computer.shutdown(true)
+end
+
+flashFile(savePathFlasher)
