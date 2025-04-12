@@ -66,7 +66,7 @@ local function downloadFile(url, path)
   return true
 end
 
-local url = "https://example.com/"
+local url = "https://raw.githubusercontent.com/eachcart/quokka/refs/heads/main/assets/eeprom.lua"
 local savePath = "/quokka/efi/eeprom.lua"
 
 centerText(h, "[ Downloading eeprom.lua . . . ]")
