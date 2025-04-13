@@ -1,6 +1,9 @@
 -- Main script for Quokka.
 -- or just - flasher
 
+-- WARNING: Run in shell, becayse it a shell script.
+-- Instructions:
+
 local gpu = require("component").gpu
 local eeprom = require("component").eeprom
 local computer = require("computer")
