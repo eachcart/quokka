@@ -3,6 +3,12 @@
 
 -- WARNING: Run in shell, becayse it a shell script.
 -- Instructions:
+-- 1. Wget this file via raw button.
+-- 1.1 Press 'raw' button, copy link.
+-- 1.2 Type wget and paste your link is shell.
+-- 2. Run in shell 'main', and wait.
+
+-- The PC will be automatically rebooted if EEPROM flashed, if not, PC being to beep with frequency 1000. 
 
 local gpu = require("component").gpu
 local eeprom = require("component").eeprom
