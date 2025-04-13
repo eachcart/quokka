@@ -6,9 +6,8 @@
 -- 3.1 Press 'raw' button, copy link.
 -- 3.2 Type wget and paste your link is shell.
 -- 4. Type another command: 'mv floppy_disk.lua init.lua'.
--- 5. Reboot, and voila!
 
--- Make sure you have installed Quokka or MineOS EFI and selected your floppy disk as bootable.
+-- Make sure you have installed Quokka or MineOS EFI and selected your floppy disk as bootable in PC where you need to install Quokka.
 
 local component = component
 local computer = computer
